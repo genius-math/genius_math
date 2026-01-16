@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,63 +15,78 @@ body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
 .page { display: none; min-height: 100vh; }
 .active-page { display: block; }
 .nav-active { color: #4f46e5 !important; }
-.avatar { width:32px;height:32px;border-radius:50%;object-fit:cover; }
 </style>
 </head>
-<body class="pb-20"><header class="bg-indigo-700 text-white p-4 text-center shadow-lg sticky top-0 z-50">
+<body class="pb-20">
+
+<header class="bg-indigo-700 text-white p-4 text-center shadow-lg sticky top-0 z-50">
 <h1 class="text-xl font-bold">عبقري الرياضيات</h1>
 <p class="text-xs opacity-80">Genius Math - Mr. Ahmad Elkholy</p>
-</header><main class="p-4 max-w-md mx-auto"><section id="visitor" class="page active-page">
+</header>
+
+<main class="p-4 max-w-md mx-auto">
+
+<section id="visitor" class="page active-page">
 <div class="bg-white p-6 rounded-2xl shadow">
 <h2 class="font-bold mb-4">👤 بيانات الزائر</h2>
 <input id="visitor-name" class="w-full p-3 bg-gray-100 rounded mb-3" placeholder="اسمك (فريد)">
-<input id="visitor-avatar-file" type="file" accept="image/*" class="w-full p-3 bg-gray-100 rounded mb-3">
-<img id="visitor-preview" class="avatar hidden mb-3">
+<select id="visitor-avatar" class="w-full p-3 bg-gray-100 rounded mb-3">
+<option value="😀">😀</option>
+<option value="😎">😎</option>
+<option value="👨‍🎓">👨‍🎓</option>
+<option value="👩‍🎓">👩‍🎓</option>
+<option value="⭐">⭐</option>
+</select>
 <button onclick="saveVisitor()" class="w-full bg-indigo-600 text-white py-3 rounded">دخول</button>
 </div>
-</section><section id="posts" class="page">
-<div class="flex justify-between mb-3">
-<select id="sort-comments" onchange="renderPosts()" class="bg-gray-100 p-2 rounded text-xs">
-<option value="new">الأحدث</option>
-<option value="top">الأكثر تفاعلًا</option>
-</select>
-</div>
+</section>
+
+<section id="posts" class="page">
 <div id="posts-feed" class="space-y-4"></div>
-</section><section id="contact" class="page">
+</section>
+
+<section id="ai" class="page">
+<div class="bg-white rounded-xl shadow p-4 h-[70vh] flex flex-col">
+<div id="chat-box" class="flex-1 overflow-y-auto mb-3"></div>
+<div class="flex gap-2">
+<input id="ai-input" class="flex-1 bg-gray-100 p-2 rounded" placeholder="اكتب سؤالك">
+<button onclick="sendChat()" class="bg-indigo-600 text-white px-4 rounded">إرسال</button>
+</div>
+</div>
+</section>
+
+<section id="contact" class="page">
 <div class="bg-white p-6 rounded-xl shadow text-center">
-<img id="teacher-img" class="w-24 h-24 rounded-full mx-auto mb-3 hidden">
 <h2 id="teacher-name" class="font-bold text-lg"></h2>
 <p id="teacher-exp" class="text-sm text-gray-500"></p>
 </div>
-</section></main><nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2">
+</section>
+
+</main>
+
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2">
 <button onclick="showPage('posts')">🏠</button>
+<button onclick="showPage('ai')">🤖</button>
 <button onclick="showPage('contact')">👨‍🏫</button>
-</nav><script>
+</nav>
+
+<script>
+// Firebase
 firebase.initializeApp({ databaseURL: "https://genius-math-44207-default-rtdb.firebaseio.com/" });
 const db = firebase.database();
-const storage = firebase.storage();
 
 let visitor = JSON.parse(localStorage.getItem('visitor'));
 if(visitor) showPage('posts');
 
 function saveVisitor(){
-const name = visitorName.value.trim();
+const name = document.getElementById('visitor-name').value.trim();
+const avatar = document.getElementById('visitor-avatar').value;
 if(!name) return alert('اكتب اسم');
-const file = visitorAvatarFile.files[0];
-if(!file) return alert('اختر صورة');
-const ref = storage.ref('avatars/'+Date.now()+'.jpg');
-ref.put(file).then(()=>ref.getDownloadURL()).then(url=>{
-visitor = {name, avatar:url, liked:{}};
+visitor = {name, avatar};
 localStorage.setItem('visitor', JSON.stringify(visitor));
 showPage('posts');
 renderPosts();
-});
 }
-
-visitorAvatarFile.onchange = e =>{
-visitorPreview.src = URL.createObjectURL(e.target.files[0]);
-visitorPreview.classList.remove('hidden');
-};
 
 function showPage(id){
 document.querySelectorAll('.page').forEach(p=>p.classList.remove('active-page'));
@@ -79,28 +95,25 @@ document.getElementById(id).classList.add('active-page');
 
 function renderPosts(){
 db.ref('posts').on('value', snap=>{
-const feed = document.getElementById('posts-feed');
+const feed=document.getElementById('posts-feed');
 feed.innerHTML='';
-const sort = document.getElementById('sort-comments').value;
-let data = snap.val()||{};
+const data=snap.val()||{};
 Object.keys(data).reverse().forEach(k=>{
 const p=data[k];
 feed.innerHTML+=`
 <div class='bg-white p-4 rounded shadow'>
-<p>${p.text}</p>
-<div class='flex gap-4 text-sm my-2'>
+<p class='mb-2'>${p.text}</p>
+<div class='flex gap-4 text-sm'>
 <button onclick="reactPost('${k}','like')">👍 ${p.likes||0}</button>
 <button onclick="reactPost('${k}','dislike')">👎 ${p.dislikes||0}</button>
 </div>
-${Object.entries(p.comments||{}).sort((a,b)=> sort==='top' ? (b[1].likes||0)-(a[1].likes||0) : b[1].date-a[1].date ).map(([ck,c])=>`
-<div class='flex items-center gap-2 text-xs bg-gray-100 p-2 rounded mb-1'>
-<img src='${c.avatar}' class='avatar'>
-<b>${c.name}</b>: ${c.text}
-<button onclick="likeComment('${k}','${ck}')">👍 ${c.likes||0}</button>
-<button onclick="reportComment('${k}','${ck}')">🚩</button>
-</div>`).join('')}
+<div class='mt-3'>
+${Object.values(p.comments||{}).map(c=>`
+<div class='text-xs bg-gray-100 p-2 rounded mb-1'>${c.avatar} <b>${c.name}</b>: ${c.text}</div>
+`).join('')}
 <input id='c-${k}' class='w-full bg-gray-100 p-2 rounded mt-2' placeholder='تعليقك'>
 <button onclick="sendComment('${k}')" class='text-xs mt-1 text-indigo-600'>إرسال</button>
+</div>
 </div>`;
 });
 });
@@ -109,36 +122,30 @@ ${Object.entries(p.comments||{}).sort((a,b)=> sort==='top' ? (b[1].likes||0)-(a[
 function sendComment(k){
 const i=document.getElementById('c-'+k);
 if(!i.value) return;
-db.ref(`posts/${k}/comments`).push({name:visitor.name,avatar:visitor.avatar,text:i.value,likes:0,date:Date.now()});
+db.ref(`posts/${k}/comments`).push({name:visitor.name,avatar:visitor.avatar,text:i.value});
 i.value='';
 }
 
 function reactPost(k,t){
-if(visitor.liked[k]) return alert('تم التفاعل بالفعل');
-visitor.liked[k]=true;
-localStorage.setItem('visitor',JSON.stringify(visitor));
 const r=db.ref(`posts/${k}/${t=='like'?'likes':'dislikes'}`);
 r.transaction(v=>(v||0)+1);
 }
 
-function likeComment(pk,ck){
-const r=db.ref(`posts/${pk}/comments/${ck}/likes`);
-r.transaction(v=>(v||0)+1);
-}
-
-function reportComment(pk,ck){
-db.ref(`reports/${pk}/${ck}`).set({by:visitor.name,date:Date.now()});
-alert('تم التبليغ');
+async function sendChat(){
+const input=document.getElementById('ai-input');
+if(!input.value) return;
+document.getElementById('chat-box').innerHTML+=`<div>${input.value}</div>`;
+input.value='';
 }
 
 // profile
 db.ref('profile').once('value').then(s=>{
 const p=s.val()||{};
-teacherName.innerText=p.name||'';
-teacherExp.innerText=p.exp||'';
-if(p.img){ teacherImg.src=p.img; teacherImg.classList.remove('hidden'); }
+document.getElementById('teacher-name').innerText=p.name||'';
+document.getElementById('teacher-exp').innerText=p.exp||'';
 });
 
 renderPosts();
-</script></body>
+</script>
+</body>
 </html>
