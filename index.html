@@ -277,19 +277,46 @@ async function sendChat() {
 }
 
 renderPosts();
-  function saveProfile() {
+  async function saveProfile() {
   if (!isAdmin) return;
 
-  db.ref("profile").set({
+  let imgUrl = originalProfileData?.img || "";
+
+  const fileInput = document.getElementById("profile-img-file");
+  if (fileInput.files.length) {
+    const file = fileInput.files[0];
+    const ref = firebase.storage().ref("profile/avatar.jpg");
+    await ref.put(file);
+    imgUrl = await ref.getDownloadURL();
+  }
+function cancelProfileEdit() {
+  if (!originalProfileData) return;
+
+  document.getElementById("profile-name").value = originalProfileData.name || "";
+  document.getElementById("profile-exp").value = originalProfileData.exp || "";
+
+  if (originalProfileData.img) {
+    const img = document.getElementById("profile-preview");
+    img.src = originalProfileData.img;
+    img.classList.remove("hidden");
+  }
+
+  document.getElementById("profile-img-file").value = "";
+  alert("تم الخروج بدون حفظ التعديلات");
+}
+
+  
+  const data = {
     name: document.getElementById("profile-name").value,
     exp: document.getElementById("profile-exp").value,
-    img: document.getElementById("profile-img").value,
-    wa: document.getElementById("profile-wa").value,
-    fb: document.getElementById("profile-fb").value,
+    img: imgUrl,
     updated: Date.now()
-  });
+  };
 
-  alert("تم حفظ البيانات بنجاح");
+  await db.ref("profile").set(data);
+
+  originalProfileData = { ...data };
+  alert("تم حفظ التعديلات بنجاح");
 }
   db.ref("profile").on("value", snap => {
   if (!snap.exists()) return;
