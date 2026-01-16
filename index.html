@@ -122,8 +122,8 @@ function showPage(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
     document.getElementById(pageId).classList.add('active-page');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
-    const targetBtn = document.getElementById('btn-' + pageId);
-    if(targetBtn) targetBtn.classList.add('nav-active');
+    const btn = document.getElementById('btn-' + pageId);
+    if(btn) btn.classList.add('nav-active');
     window.scrollTo(0, 0);
 }
 
@@ -132,7 +132,7 @@ function unlockAdmin() {
     if(prompt("رمز الوصول يا أستاذ أحمد:") === "2025") {
         isAdmin = true;
         document.getElementById('admin-panel').classList.remove('hidden');
-        alert("مرحباً بك! تم تفعيل أدوات التحكم.");
+        alert("مرحباً بك يا أدمن! تم تفعيل صلاحيات التحكم الكاملة.");
         loadProfileToForm();
     }
 }
@@ -153,52 +153,73 @@ function publishPost() {
     document.getElementById('post-img').value = "";
 }
 
-// عرض المنشورات
+// عرض المنشورات والتعليقات والردود
 db.ref('posts').on('value', (snapshot) => {
     const feed = document.getElementById('posts-feed');
     feed.innerHTML = "";
     const data = snapshot.val();
     if(!data) { feed.innerHTML = "<p class='text-center text-gray-400 py-10'>لا توجد دروس حالياً.</p>"; return; }
 
-    Object.keys(data).reverse().forEach(key => {
-        const post = data[key];
-        let coms = "";
+    Object.keys(data).reverse().forEach(postId => {
+        const post = data[postId];
+        let comsHtml = "";
+        
         if(post.comments) {
-            Object.keys(post.comments).forEach(ckey => {
-                const c = post.comments[ckey];
-                coms += `<div class="bg-gray-50 p-2 rounded-xl text-[11px] mb-1 border-r-2 border-indigo-200">
-                    <b class="text-indigo-600">${c.name}:</b> <span>${c.text}</span>
-                    ${isAdmin ? `<button onclick="deleteCom('${key}','${ckey}')" class="text-red-400 float-left"><i class="fas fa-trash"></i></button>` : ""}
-                    <div class="clear-both"></div>
+            Object.keys(post.comments).forEach(comId => {
+                const c = post.comments[comId];
+                let repliesHtml = "";
+                
+                // جلب الردود على هذا التعليق
+                if(c.replies) {
+                    Object.keys(c.replies).forEach(repId => {
+                        const r = c.replies[repId];
+                        repliesHtml += `
+                        <div class="bg-indigo-50/50 p-2 rounded-lg text-[10px] mt-1 mr-4 border-r border-indigo-300">
+                            <b class="${r.name.toLowerCase().includes('admin') ? 'text-red-600' : 'text-indigo-600'}">${r.name}:</b> ${r.text}
+                            ${isAdmin ? `<button onclick="deleteReply('${postId}','${comId}','${repId}')" class="text-red-400 float-left ml-1"><i class="fas fa-times"></i></button>` : ""}
+                        </div>`;
+                    });
+                }
+
+                comsHtml += `
+                <div class="bg-gray-50 p-2 rounded-xl text-[11px] mb-2 border-r-2 border-indigo-200">
+                    <b class="${c.name.toLowerCase().includes('admin') ? 'text-red-600' : 'text-indigo-700'}">${c.name}:</b> <span>${c.text}</span>
+                    <div class="mt-1">
+                        <button onclick="toggleReplyInput('${comId}')" class="text-[9px] text-indigo-500 font-bold ml-2">رد</button>
+                        ${isAdmin ? `<button onclick="deleteCom('${postId}','${comId}')" class="text-red-400 text-[9px] font-bold">حذف</button>` : ""}
+                    </div>
+                    <div id="reply-box-${comId}" class="hidden mt-2 space-y-1">
+                        <input id="rep-name-${comId}" type="text" placeholder="اسمك" class="w-full bg-white border border-gray-100 rounded-lg px-2 py-1 text-[9px] outline-none">
+                        <div class="flex gap-1">
+                            <input id="rep-input-${comId}" type="text" placeholder="اكتب ردك..." class="flex-1 bg-white border border-gray-100 rounded-lg px-2 py-1 text-[9px] outline-none">
+                            <button onclick="sendReply('${postId}','${comId}')" class="bg-indigo-500 text-white px-2 rounded-lg text-[9px]"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                    <div class="replies-container">${repliesHtml}</div>
                 </div>`;
             });
         }
 
         feed.innerHTML += `
-        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-6 post-card">
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-6">
             ${post.img ? `<img src="${post.img}" class="w-full h-48 object-cover">` : ""}
             <div class="p-5">
                 <div class="flex justify-between items-start mb-2">
                     <p class="text-gray-800 text-sm font-semibold">${post.text}</p>
-                    ${isAdmin ? `<button onclick="deletePost('${key}')" class="text-red-500"><i class="fas fa-trash-alt"></i></button>` : ""}
+                    ${isAdmin ? `<button onclick="deletePost('${postId}')" class="text-red-500 text-xs"><i class="fas fa-trash-alt"></i></button>` : ""}
                 </div>
                 <div class="flex gap-4 mt-3 text-xs text-gray-500">
-                    <button onclick="vote('${key}', 'likes')" class="flex items-center gap-1 hover:text-green-600 transition">
-                        <i class="fas fa-thumbs-up"></i> ${post.likes || 0}
-                    </button>
-                    <button onclick="vote('${key}', 'dislikes')" class="flex items-center gap-1 hover:text-red-600 transition">
-                        <i class="fas fa-thumbs-down"></i> ${post.dislikes || 0}
-                    </button>
+                    <button onclick="vote('${postId}', 'likes')" class="flex items-center gap-1 hover:text-green-600"><i class="fas fa-thumbs-up"></i> ${post.likes || 0}</button>
+                    <button onclick="vote('${postId}', 'dislikes')" class="flex items-center gap-1 hover:text-red-600"><i class="fas fa-thumbs-down"></i> ${post.dislikes || 0}</button>
                     <span class="mr-auto text-[9px] text-gray-400">${post.date}</span>
                 </div>
-
                 <div class="mt-4 pt-4 border-t border-gray-50">
-                    <div id="coms-list-${key}">${coms}</div>
-                    <div class="space-y-2 mt-3">
-                        <input id="name-${key}" type="text" placeholder="اسمك (اختياري)" class="w-full bg-gray-50 border-none rounded-xl px-3 py-1 text-[10px] outline-none focus:ring-1 focus:ring-indigo-300">
+                    <div id="coms-list-${postId}">${comsHtml}</div>
+                    <div class="space-y-2 mt-3 bg-gray-50/50 p-2 rounded-2xl">
+                        <input id="name-${postId}" type="text" placeholder="اسمك (اختياري)" class="w-full bg-white border-none rounded-xl px-3 py-1 text-[10px] outline-none focus:ring-1 focus:ring-indigo-300">
                         <div class="flex gap-2">
-                            <input id="input-${key}" type="text" placeholder="اكتب رداً..." class="flex-1 bg-gray-50 border-none rounded-xl px-3 py-2 text-[11px] outline-none focus:ring-1 focus:ring-indigo-300">
-                            <button onclick="sendCom('${key}')" class="bg-indigo-600 text-white px-4 rounded-xl text-xs shadow-md"><i class="fas fa-paper-plane"></i></button>
+                            <input id="input-${postId}" type="text" placeholder="اكتب تعليقاً..." class="flex-1 bg-white border-none rounded-xl px-3 py-2 text-[11px] outline-none focus:ring-1 focus:ring-indigo-300">
+                            <button onclick="sendCom('${postId}')" class="bg-indigo-600 text-white px-4 rounded-xl text-xs shadow-md"><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>
                 </div>
@@ -207,44 +228,71 @@ db.ref('posts').on('value', (snapshot) => {
     });
 });
 
-// التفاعلات والتعليقات
-function vote(key, type) {
-    const ref = db.ref(`posts/${key}/${type}`);
-    ref.transaction(current => (current || 0) + 1);
+// وظيفة لمنع اسم Admin وتجهيز الاسم
+function validateName(name) {
+    const forbidden = ["admin", "أدمن", "ادمن", "administrator", "الأستاذ أحمد"];
+    let checkName = name.trim().toLowerCase();
+    
+    if (isAdmin) return name || "Admin"; // السماح للأدمن فقط
+    
+    for (let word of forbidden) {
+        if (checkName.includes(word)) {
+            alert("عذراً، هذا الاسم مخصص للإدارة فقط.");
+            return "Stranger";
+        }
+    }
+    return name.trim() || "Stranger";
 }
 
-function sendCom(key) {
-    const input = document.getElementById('input-' + key);
-    const nameInput = document.getElementById('name-' + key);
+function sendCom(postId) {
+    const input = document.getElementById('input-' + postId);
+    const nameInput = document.getElementById('name-' + postId);
+    const name = validateName(nameInput.value);
     const text = input.value.trim();
-    const name = nameInput.value.trim() || "Stranger";
-    
     if(text) {
-        db.ref(`posts/${key}/comments`).push({ name, text });
+        db.ref(`posts/${postId}/comments`).push({ name, text });
         input.value = "";
     }
 }
 
-function deletePost(key) { if(confirm("حذف المنشور؟")) db.ref(`posts/${key}`).remove(); }
-function deleteCom(pk, ck) { if(confirm("حذف التعليق؟")) db.ref(`posts/${pk}/comments/${ck}`).remove(); }
+function toggleReplyInput(comId) {
+    const box = document.getElementById('reply-box-' + comId);
+    box.classList.toggle('hidden');
+}
 
-// الملف الشخصي
+function sendReply(postId, comId) {
+    const input = document.getElementById('rep-input-' + comId);
+    const nameInput = document.getElementById('rep-name-' + comId);
+    const name = validateName(nameInput.value);
+    const text = input.value.trim();
+    if(text) {
+        db.ref(`posts/${postId}/comments/${comId}/replies`).push({ name, text });
+        input.value = "";
+        document.getElementById('reply-box-' + comId).classList.add('hidden');
+    }
+}
+
+// وظائف الحذف (للأدمن فقط)
+function deletePost(id) { if(isAdmin && confirm("حذف المنشور؟")) db.ref(`posts/${id}`).remove(); }
+function deleteCom(pid, cid) { if(isAdmin && confirm("حذف التعليق؟")) db.ref(`posts/${pid}/comments/${cid}`).remove(); }
+function deleteReply(pid, cid, rid) { if(isAdmin && confirm("حذف الرد؟")) db.ref(`posts/${pid}/comments/${cid}/replies/${rid}`).remove(); }
+
+function vote(id, type) { db.ref(`posts/${id}/${type}`).transaction(c => (c || 0) + 1); }
+
+// مزامنة الملف الشخصي
 db.ref("profile").on("value", (snap) => {
     if (!snap.exists()) return;
     const p = snap.val();
     originalProfileData = p;
     document.querySelector("#contact h2").innerText = p.name || "الأستاذ أحمد الخولي";
     document.querySelector("#contact p").innerText = p.exp || "خبير مادة الرياضيات";
-    const waLink = document.querySelector("#contact a[href*='wa.me']");
-    const fbLink = document.querySelector("#contact a[href*='facebook']");
-    if(waLink && p.wa) waLink.href = p.wa;
-    if(fbLink && p.fb) fbLink.href = p.fb;
-    if (p.img) {
-        document.querySelector("#contact .relative").innerHTML = `<img src="${p.img}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">`;
-    }
+    const wa = document.querySelector("#contact a[href*='wa.me']"), fb = document.querySelector("#contact a[href*='facebook']");
+    if(wa && p.wa) wa.href = p.wa; if(fb && p.fb) fb.href = p.fb;
+    if (p.img) document.querySelector("#contact .relative").innerHTML = `<img src="${p.img}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">`;
 });
 
 async function saveProfile() {
+    if(!isAdmin) return;
     const data = {
         name: document.getElementById("profile-name").value,
         exp: document.getElementById("profile-exp").value,
@@ -253,7 +301,7 @@ async function saveProfile() {
         fb: document.getElementById("profile-fb").value
     };
     await db.ref("profile").set(data);
-    alert("تم الحفظ!");
+    alert("تم تحديث الملف الشخصي!");
 }
 
 function loadProfileToForm() {
@@ -266,24 +314,18 @@ function loadProfileToForm() {
 
 // الذكاء الاصطناعي
 async function callAI() {
-    const input = document.getElementById("ai-input");
-    const msg = input.value.trim();
+    const input = document.getElementById("ai-input"), msg = input.value.trim(), box = document.getElementById("chat-box");
     if(!msg) return;
-    const box = document.getElementById("chat-box");
     box.innerHTML += `<div class="bg-white p-3 rounded-2xl shadow-sm self-end ml-10 border">${msg}</div>`;
     input.value = "";
-    const loading = document.createElement("div");
-    loading.className = "bg-indigo-50 p-3 rounded-2xl text-sm text-indigo-800";
-    loading.innerText = "🤖 جاري التفكير...";
-    box.appendChild(loading);
+    const load = document.createElement("div");
+    load.className = "bg-indigo-50 p-3 rounded-2xl text-sm text-indigo-800";
+    load.innerText = "🤖 جاري التفكير...";
+    box.appendChild(load);
     try {
-        const res = await fetch("/.netlify/functions/gemini", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: msg })
-        });
-        const data = await res.json();
-        loading.innerText = data.reply || "عذراً، لم أفهم السؤال.";
-    } catch(e) { loading.innerText = "❌ حدث خطأ في الاتصال"; }
+        const res = await fetch("/.netlify/functions/gemini", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: msg }) });
+        const data = await res.json(); load.innerText = data.reply || "لم أفهم السؤال.";
+    } catch(e) { load.innerText = "❌ حدث خطأ في الاتصال"; }
     box.scrollTop = box.scrollHeight;
 }
 </script>
