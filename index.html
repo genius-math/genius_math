@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عبقري الرياضيات - الأستاذ أحمد الخولي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; background-color: #f0f2f5; padding-bottom: 80px; }
+        .page { display: none; }
+        .active-page { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .nav-active { color: #4f46e5 !important; font-weight: bold; }
+        .post-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+
+<header class="bg-indigo-700 text-white p-4 text-center shadow-md sticky top-0 z-50">
+    <h1 class="text-xl font-bold">عبقري الرياضيات</h1>
+    <p class="text-[10px] opacity-90">مصة الأستاذ أحمد الخولي التعليمية</p>
+</header>
+
+<main class="p-4 max-w-md mx-auto">
+    <section id="posts" class="page active-page">
+        <div class="flex justify-between items-center mb-4 px-2">
+            <h2 class="font-bold text-gray-700"><i class="fas fa-chalkboard-teacher ml-2"></i>آخر الدروس</h2>
+            <button onclick="unlockAdmin()" class="text-[10px] bg-white text-indigo-700 px-3 py-1 rounded-full border border-indigo-200 font-bold shadow-sm">دخول الإدارة</button>
+        </div>
+
+        <div id="admin-panel" class="hidden bg-white p-5 rounded-3xl mb-8 border-2 border-indigo-600 shadow-2xl">
+            <h3 class="font-bold text-indigo-700 mb-4 border-b pb-2">إضافة درس جديد</h3>
+            <textarea id="post-input" class="w-full bg-gray-50 rounded-xl p-3 text-sm mb-3 focus:ring-2 focus:ring-indigo-500 outline-none" rows="3" placeholder="اكتب شرح الدرس أو التنبيه هنا..."></textarea>
+            <input id="post-img" type="text" class="w-full bg-gray-50 rounded-xl p-3 text-sm mb-4 outline-none" placeholder="ضع رابط الصورة هنا (اختياري)">
+            <button onclick="publishPost()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">نشر للطلاب</button>
+            
+            <h3 class="font-bold text-indigo-700 mt-6 mb-4 border-b pb-2">تعديل بياناتي الشخصية</h3>
+            <div class="space-y-2">
+                <input id="p-name" type="text" placeholder="الاسم بالكامل" class="w-full p-2 border rounded-lg text-sm outline-none">
+                <input id="p-exp" type="text" placeholder="الوصف الوظيفي" class="w-full p-2 border rounded-lg text-sm outline-none">
+                <input id="p-wa" type="text" placeholder="رابط الواتساب" class="w-full p-2 border rounded-lg text-sm outline-none">
+                <input id="p-fb" type="text" placeholder="رابط الفيسبوك" class="w-full p-2 border rounded-lg text-sm outline-none">
+                <input id="p-img" type="text" placeholder="رابط صورتك الشخصية" class="w-full p-2 border rounded-lg text-sm outline-none">
+                <button onclick="saveProfile()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold mt-2">حفظ كل التعديلات</button>
+            </div>
+        </div>
+
+        <div id="posts-feed" class="space-y-6">
+            <div class="text-center py-20 text-gray-400">
+                <i class="fas fa-spinner animate-spin text-3xl mb-2"></i>
+                <p>جاري تحميل الدروس...</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="ai" class="page">
+        <div class="bg-white rounded-3xl shadow-lg border h-[70vh] flex flex-col">
+            <div class="p-4 border-b bg-indigo-50 rounded-t-3xl text-center">
+                <span class="font-bold text-indigo-700"><i class="fas fa-robot ml-2"></i>مساعد الرياضيات الذكي</span>
+            </div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"></div>
+            <div class="p-3 border-t">
+                <div class="flex gap-2">
+                    <input id="ai-input" type="text" class="flex-1 border p-3 rounded-2xl text-sm outline-none focus:border-indigo-500" placeholder="اسألني عن أي مسألة...">
+                    <button onclick="callAI()" class="bg-indigo-600 text-white w-12 h-12 rounded-2xl shadow-md"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="page">
+        <div class="bg-white rounded-[40px] p-8 shadow-xl text-center border relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-24 bg-indigo-700"></div>
+            <div id="profile-pic-disp" class="relative z-10 w-32 h-32 mx-auto mb-4 rounded-full border-4 border-white shadow-lg bg-gray-200 overflow-hidden">
+                <i class="fas fa-user-tie text-5xl text-gray-400 mt-8"></i>
+            </div>
+            <h2 id="prof-name-disp" class="text-2xl font-bold text-gray-800">الأستاذ أحمد الخولي</h2>
+            <p id="prof-exp-disp" class="text-indigo-600 font-medium mb-8">خبير مادة الرياضيات</p>
+            <div class="grid grid-cols-1 gap-4">
+                <a id="prof-wa-link" href="#" target="_blank" class="flex items-center justify-center gap-3 bg-green-500 text-white p-4 rounded-2xl font-bold shadow-md hover:opacity-90"><i class="fab fa-whatsapp text-xl"></i> واتساب</a>
+                <a id="prof-fb-link" href="#" target="_blank" class="flex items-center justify-center gap-3 bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-md hover:opacity-90"><i class="fab fa-facebook-f text-xl"></i> فيسبوك</a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t flex justify-around p-3 z-50 rounded-t-3xl shadow-2xl">
+    <button onclick="showPage('posts')" id="btn-posts" class="flex flex-col items-center text-gray-400 nav-active"><i class="fas fa-home text-xl"></i><span class="text-[10px] mt-1">الرئيسية</span></button>
+    <button onclick="showPage('ai')" id="btn-ai" class="flex flex-col items-center text-gray-400"><i class="fas fa-brain text-xl"></i><span class="text-[10px] mt-1">الذكاء</span></button>
+    <button onclick="showPage('contact')" id="btn-contact" class="flex flex-col items-center text-gray-400"><i class="fas fa-user-circle text-xl"></i><span class="text-[10px] mt-1">الأستاذ</span></button>
+</nav>
+
+<script>
+// 1. الإعدادات الأساسية
+const firebaseConfig = { databaseURL: "https://genius-math-44207-default-rtdb.firebaseio.com/" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+let isAdmin = false;
+let currentProfile = {};
+
+// 2. التنقل
+function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+    document.getElementById(id).classList.add('active-page');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+    document.getElementById('btn-' + id).classList.add('nav-active');
+    window.scrollTo(0, 0);
+}
+
+// 3. الإدارة
+function unlockAdmin() {
+    const pw = prompt("كلمة السر الخاصة بالأستاذ أحمد:");
+    if(pw === "2025") {
+        isAdmin = true;
+        document.getElementById('admin-panel').classList.remove('hidden');
+        alert("أهلاً بك يا أدمن! يمكنك الآن النشر والحذف وتعديل بياناتك.");
+        fillAdminForm();
+    } else {
+        alert("كلمة السر خاطئة.");
+    }
+}
+
+// 4. نظام المنشورات
+function publishPost() {
+    const text = document.getElementById('post-input').value.trim();
+    const img = document.getElementById('post-img').value.trim();
+    if(!text) return alert("اكتب محتوى أولاً");
+    
+    db.ref('posts').push({
+        text,
+        img,
+        date: new Date().toLocaleString('ar-EG'),
+        likes: 0,
+        dislikes: 0
+    });
+    document.getElementById('post-input').value = "";
+    document.getElementById('post-img').value = "";
+}
+
+db.ref('posts').on('value', (snap) => {
+    const feed = document.getElementById('posts-feed');
+    feed.innerHTML = "";
+    const data = snap.val();
+    if(!data) { feed.innerHTML = "<div class='text-center py-10 text-gray-400'>لا توجد منشورات حالياً</div>"; return; }
+
+    Object.keys(data).reverse().forEach(postId => {
+        const post = data[postId];
+        let commentsSection = "";
+
+        if(post.comments) {
+            Object.keys(post.comments).forEach(comId => {
+                const c = post.comments[comId];
+                let repliesHtml = "";
+                if(c.replies) {
+                    Object.keys(c.replies).forEach(rId => {
+                        const r = c.replies[rId];
+                        repliesHtml += `
+                        <div class="bg-indigo-50 p-2 rounded-xl text-[10px] mt-1 mr-4 border-r-2 border-indigo-300 relative">
+                            <b class="${r.name === 'Admin' ? 'text-red-600' : 'text-indigo-600'}">${r.name}:</b> ${r.text}
+                            ${isAdmin ? `<button onclick="deleteReply('${postId}','${comId}','${rId}')" class="absolute left-2 top-2 text-red-400 text-[8px]"><i class="fas fa-trash"></i></button>` : ""}
+                        </div>`;
+                    });
+                }
+
+                commentsSection += `
+                <div class="bg-gray-50 p-3 rounded-2xl text-[11px] mb-2 border border-gray-100 relative">
+                    <b class="${c.name === 'Admin' ? 'text-red-600' : 'text-indigo-800'}">${c.name}:</b> ${c.text}
+                    <div class="mt-2 flex gap-3">
+                        <button onclick="document.getElementById('r-box-${comId}').classList.toggle('hidden')" class="text-indigo-600 font-bold">رد</button>
+                        ${isAdmin ? `<button onclick="deleteComment('${postId}','${comId}')" class="text-red-500 font-bold">حذف</button>` : ""}
+                    </div>
+                    <div id="r-box-${comId}" class="hidden mt-2 space-y-2">
+                        <input id="rn-${comId}" type="text" placeholder="اسمك" class="w-full p-2 border rounded-lg text-[10px] outline-none">
+                        <div class="flex gap-1">
+                            <input id="ri-${comId}" type="text" placeholder="اكتب ردك هنا..." class="flex-1 p-2 border rounded-lg text-[10px] outline-none">
+                            <button onclick="sendReply('${postId}','${comId}')" class="bg-indigo-500 text-white px-3 rounded-lg text-[10px]"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                    <div class="reps-area mt-2">${repliesHtml}</div>
+                </div>`;
+            });
+        }
+
+        feed.innerHTML += `
+        <div class="post-card">
+            ${post.img ? `<img src="${post.img}" class="w-full h-48 object-cover">` : ""}
+            <div class="p-5">
+                <div class="flex justify-between items-start mb-3">
+                    <p class="text-sm font-bold text-gray-800 leading-relaxed">${post.text}</p>
+                    ${isAdmin ? `<button onclick="deletePost('${postId}')" class="text-red-500 bg-red-50 w-8 h-8 rounded-full"><i class="fas fa-trash-alt text-xs"></i></button>` : ""}
+                </div>
+                <div class="flex gap-4 text-xs text-gray-500 mb-4 bg-gray-50 p-2 rounded-xl">
+                    <button onclick="vote('${postId}','likes')" class="flex items-center gap-1 hover:text-indigo-600"><i class="fas fa-thumbs-up"></i> ${post.likes||0}</button>
+                    <button onclick="vote('${postId}','dislikes')" class="flex items-center gap-1 hover:text-red-600"><i class="fas fa-thumbs-down"></i> ${post.dislikes||0}</button>
+                    <span class="mr-auto text-[9px] opacity-70">${post.date}</span>
+                </div>
+                <div class="border-t pt-4">
+                    <div class="max-h-40 overflow-y-auto mb-3">${commentsSection}</div>
+                    <div class="bg-indigo-50/50 p-3 rounded-2xl">
+                        <input id="cn-${postId}" type="text" placeholder="اسمك (اختياري)" class="w-full bg-white p-2 rounded-xl text-[10px] border-none mb-2 outline-none">
+                        <div class="flex gap-2">
+                            <input id="ci-${postId}" type="text" placeholder="اكتب تعليقك..." class="flex-1 bg-white p-2 rounded-xl text-[11px] border-none outline-none">
+                            <button onclick="sendComment('${postId}')" class="bg-indigo-600 text-white px-4 rounded-xl shadow-md"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+});
+
+// 5. وظائف التفاعل
+function checkName(n) {
+    if(isAdmin) return "Admin";
+    const blackList = ["admin", "أدمن", "ادمن", "أحمد الخولي", "الخولي"];
+    let name = n.trim();
+    for(let word of blackList) if(name.toLowerCase().includes(word)) return "Stranger";
+    return name || "Stranger";
+}
+
+function sendComment(pid) {
+    const text = document.getElementById('ci-'+pid).value.trim();
+    const name = checkName(document.getElementById('cn-'+pid).value);
+    if(text) {
+        db.ref(`posts/${pid}/comments`).push({ name, text });
+        document.getElementById('ci-'+pid).value = "";
+    }
+}
+
+function sendReply(pid, cid) {
+    const text = document.getElementById('ri-'+cid).value.trim();
+    const name = checkName(document.getElementById('rn-'+cid).value);
+    if(text) {
+        db.ref(`posts/${pid}/comments/${cid}/replies`).push({ name, text });
+        document.getElementById('ri-'+cid).value = "";
+        document.getElementById('r-box-'+cid).classList.add('hidden');
+    }
+}
+
+function vote(id, type) {
+    db.ref(`posts/${id}/${type}`).transaction(c => (c || 0) + 1);
+}
+
+// 6. الحذف
+function deletePost(id) { if(confirm("حذف المنشور نهائياً؟")) db.ref(`posts/${id}`).remove(); }
+function deleteComment(pid, cid) { if(confirm("حذف التعليق؟")) db.ref(`posts/${pid}/comments/${cid}`).remove(); }
+function deleteReply(pid, cid, rid) { if(confirm("حذف الرد؟")) db.ref(`posts/${pid}/comments/${cid}/replies/${rid}`).remove(); }
+
+// 7. الملف الشخصي
+db.ref("profile").on("value", (snap) => {
+    if(!snap.exists()) return;
+    currentProfile = snap.val();
+    document.getElementById("prof-name-disp").innerText = currentProfile.name || "الأستاذ أحمد الخولي";
+    document.getElementById("prof-exp-disp").innerText = currentProfile.exp || "خبير الرياضيات";
+    document.getElementById("prof-wa-link").href = currentProfile.wa || "#";
+    document.getElementById("prof-fb-link").href = currentProfile.fb || "#";
+    if(currentProfile.img) {
+        document.getElementById("profile-pic-disp").innerHTML = `<img src="${currentProfile.img}" class="w-full h-full object-cover">`;
+    }
+});
+
+function saveProfile() {
+    if(!isAdmin) return;
+    const data = {
+        name: document.getElementById("p-name").value,
+        exp: document.getElementById("p-exp").value,
+        wa: document.getElementById("p-wa").value,
+        fb: document.getElementById("p-fb").value,
+        img: document.getElementById("p-img").value
+    };
+    db.ref("profile").set(data).then(() => alert("تم تحديث بياناتك بنجاح!"));
+}
+
+function fillAdminForm() {
+    document.getElementById("p-name").value = currentProfile.name || "";
+    document.getElementById("p-exp").value = currentProfile.exp || "";
+    document.getElementById("p-wa").value = currentProfile.wa || "";
+    document.getElementById("p-fb").value = currentProfile.fb || "";
+    document.getElementById("p-img").value = currentProfile.img || "";
+}
+
+// 8. الذكاء الاصطناعي
+async function callAI() {
+    const input = document.getElementById("ai-input");
+    const msg = input.value.trim();
+    if(!msg) return;
+    
+    const chat = document.getElementById("chat-box");
+    chat.innerHTML += `<div class="bg-white p-3 rounded-2xl rounded-tr-none text-sm shadow-sm self-end text-right border max-w-[80%] mr-auto"><b>أنت:</b> ${msg}</div>`;
+    input.value = "";
+    
+    const loading = document.createElement("div");
+    loading.className = "bg-indigo-100 p-3 rounded-2xl rounded-tl-none text-sm text-indigo-800 max-w-[80%] ml-auto";
+    loading.innerText = "🤖 جاري التفكير في الحل...";
+    chat.appendChild(loading);
+    chat.scrollTop = chat.scrollHeight;
+
+    try {
+        const res = await fetch("/.netlify/functions/gemini", {
+            method: "POST",
+            body: JSON.stringify({ message: msg })
+        });
+        const data = await res.json();
+        loading.innerHTML = `<b>المساعد:</b> ${data.reply || "عذراً، لم أستطع إيجاد حل."}`;
+    } catch {
+        loading.innerText = "❌ تعذر الاتصال بالخادم الذكي.";
+    }
+    chat.scrollTop = chat.scrollHeight;
+}
+</script>
+</body>
+</html>
