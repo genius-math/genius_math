@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
 body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
@@ -54,9 +55,11 @@ placeholder="الاسم الكامل">
 class="w-full bg-gray-50 rounded-xl p-3 text-sm mb-2"
 placeholder="الخبرة / الوصف">
 
-<input id="profile-img" type="text"
-class="w-full bg-gray-50 rounded-xl p-3 text-sm mb-2"
-placeholder="رابط الصورة الشخصية">
+<input id="profile-img-file" type="file" accept="image/*"
+class="w-full bg-gray-50 rounded-xl p-3 text-sm mb-2">
+
+<img id="profile-preview"
+class="w-24 h-24 rounded-full object-cover border mx-auto mb-3 hidden">
 
 <input id="profile-wa" type="text"
 class="w-full bg-gray-50 rounded-xl p-3 text-sm mb-2"
