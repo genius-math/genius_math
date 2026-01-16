@@ -140,6 +140,20 @@ placeholder="رابط فيسبوك">
 </nav>
 
 <script>
+  function loadProfileToForm() {
+  if (!originalProfileData) return;
+
+  document.getElementById("profile-name").value = originalProfileData.name || "";
+  document.getElementById("profile-exp").value = originalProfileData.exp || "";
+
+  if (originalProfileData.img) {
+    const img = document.getElementById("profile-preview");
+    img.src = originalProfileData.img;
+    img.classList.remove("hidden");
+  }
+}
+  let originalProfileData = null;
+let tempProfileData = null;
 // إعدادات Firebase الخاصة بك
 const firebaseConfig = { databaseURL: "https://genius-math-44207-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
@@ -162,6 +176,7 @@ isAdmin = true;
 document.getElementById('admin-panel').classList.remove('hidden');
 alert("مرحباً بك! تم تفعيل أدوات التحكم.");
 renderPosts();
+loadProfileToForm();
 }
 }
 
@@ -318,21 +333,22 @@ function cancelProfileEdit() {
   originalProfileData = { ...data };
   alert("تم حفظ التعديلات بنجاح");
 }
-  db.ref("profile").on("value", snap => {
+  db.ref("profile").once("value").then(snap => {
   if (!snap.exists()) return;
 
-  const p = snap.val();
+  originalProfileData = snap.val();
+  tempProfileData = { ...originalProfileData };
 
-  // صفحة الأستاذ
-  document.querySelector("#contact h2").innerText = p.name || "";
-  document.querySelector("#contact p").innerText = p.exp || "";
+  // تعبئة صفحة الأستاذ
+  document.querySelector("#contact h2").innerText = originalProfileData.name || "";
+  document.querySelector("#contact p").innerText = originalProfileData.exp || "";
 
-  const imgContainer = document.querySelector("#contact .relative");
-  if (p.img) {
-    imgContainer.innerHTML = `
-      <img src="${p.img}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">
-    `;
+  if (originalProfileData.img) {
+    document.querySelector("#contact .relative").innerHTML = `
+      <img src="${originalProfileData.img}"
+      class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">`;
   }
+});
 
   // روابط التواصل
   const links = document.querySelectorAll("#contact a");
