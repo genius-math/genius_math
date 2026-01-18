@@ -66,6 +66,11 @@
     #install-container:active { transform: scale(0.95); }
     .animate-bounce-slow { animation: bounce 2s infinite; }
     @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  /* هذا الكود يحل مشكلة الأسطر في كل مكان في التطبيق */
+.post-text, .comment-text, .question-text {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+}
     </style>
 </head>
 <body>
