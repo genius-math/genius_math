@@ -1,0 +1,16 @@
+{
+  "name": "عبقري الرياضيات",
+  "short_name": "العبقري",
+  "description": "منصة الأستاذ أحمد الخولي لتعليم الرياضيات",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#4338ca",
+  "theme_color": "#4338ca",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/hPGFj3dk/20230624_170110.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
