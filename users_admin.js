@@ -1,8 +1,15 @@
-// ملف users_admin.js - نسخة متطورة لعرض نشاط الطلاب
+// ملف users_admin.js - النسخة المستقلة تماماً
 function loadAllUsers() {
-    if (currentUser.username !== 'admin') return;
+    // 1. التأكد من وجود الاتصال بـ Firebase
+    if (typeof db === 'undefined') {
+        console.error("Firebase db is not defined");
+        return;
+    }
 
-    // جلب كل البيانات اللازمة لعمل الإحصائيات مرة واحدة
+    const list = document.getElementById('admin-users-list');
+    if(list) list.innerHTML = "<tr><td colspan='6' class='text-center py-4 text-indigo-600 animate-pulse'>جاري تحميل سجل الطلاب...</td></tr>";
+
+    // 2. جلب البيانات مباشرة
     Promise.all([
         db.ref('users').once('value'),
         db.ref('posts').once('value'),
@@ -12,52 +19,53 @@ function loadAllUsers() {
         const postsSnap = results[1];
         const tiketsSnap = results[2];
 
-        const list = document.getElementById('admin-users-list');
+        if (!list) return;
         list.innerHTML = "";
         let count = 0;
 
         usersSnap.forEach(userSnap => {
             const user = userSnap.val();
-            const userId = userSnap.key;
-            const username = user.username;
+            const username = user.username || "";
+            const fullname = user.fullname || user.name || "---";
             count++;
 
-            // 1. حساب الإعجابات والتعليقات من فرع الـ posts
+            // حساب التفاعلات
             let totalLikes = 0;
             let totalComments = 0;
-            postsSnap.forEach(postSnap => {
-                const post = postSnap.val();
-                // حساب الإعجابات
-                if (post.likes && post.likes[username]) totalLikes++;
-                // حساب التعليقات
-                if (post.comments) {
-                    Object.values(post.comments).forEach(comment => {
-                        if (comment.username === username) totalComments++;
+            postsSnap.forEach(pSnap => {
+                const p = pSnap.val();
+                if (p.likes && p.likes[username]) totalLikes++;
+                if (p.comments) {
+                    Object.values(p.comments).forEach(c => {
+                        if (c.username === username) totalComments++;
                     });
                 }
             });
 
-            // 2. حساب عدد الأسئلة (Tickets) التي أرسلها الطالب
+            // حساب الأسئلة
             let totalQuestions = 0;
             tiketsSnap.forEach(tSnap => {
-                if (tSnap.val().username === username || tSnap.val().userName === user.fullname) {
-                    totalQuestions++;
-                }
+                const t = tSnap.val();
+                if (t.username === username || t.userName === fullname) totalQuestions++;
             });
 
-            // 3. إضافة السطر للجدول بالترتيب المطلوب
+            // إضافة السطر للجدول
             list.innerHTML += `
-                <tr class="border-b hover:bg-gray-50 text-right text-[11px]">
-                    <td class="py-3 px-1 font-bold text-gray-800">${user.fullname || '---'}</td>
-                    <td class="py-3 px-1 text-indigo-600">@${username || ''}</td>
+                <tr class="border-b text-right text-[11px] hover:bg-gray-50">
+                    <td class="py-3 px-1 font-bold text-gray-800">${fullname}</td>
+                    <td class="py-3 px-1 text-indigo-600 text-[10px]">@${username}</td>
                     <td class="py-3 px-1 text-center text-red-500 font-bold">${totalLikes}</td>
                     <td class="py-3 px-1 text-center text-blue-500 font-bold">${totalComments}</td>
                     <td class="py-3 px-1 text-center text-green-600 font-bold">${totalQuestions}</td>
-                    <td class="py-4 px-1 text-gray-600 font-mono text-[10px]">${user.phone || 'لا يوجد'}</td>
-                </tr>
-            `;
+                    <td class="py-3 px-1 text-gray-600 font-mono text-[10px]">${user.phone || '---'}</td>
+                </tr>`;
         });
 
-        document.getElementById('users-count').innerText = count + " طالب";
+        const countDisp = document.getElementById('users-count');
+        if(countDisp) countDisp.innerText = count + " طالب";
+
+    }).catch(err => {
+        console.error("Firebase Error:", err);
+        if(list) list.innerHTML = "<tr><td colspan='6' class='text-center py-4 text-red-500 font-bold'>خطأ في جلب البيانات: تأكد من صلاحيات Firebase</td></tr>";
     });
 }
