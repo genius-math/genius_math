@@ -1,3 +1,11 @@
+function deleteAnyItem(path, itemName) {
+    if (confirm(`⚠️ هل أنت متأكد من حذف ${itemName} نهائياً؟`)) {
+        db.ref(path).remove()
+            .then(() => alert("تم الحذف بنجاح ✅"))
+            .catch(err => alert("خطأ: " + err.message));
+    }
+}
+
 // ملف users_admin.js - نسخة حساب النشاط الذكية
 function loadAllUsers() {
     const database = (typeof db !== 'undefined') ? db : firebase.database();
@@ -67,3 +75,5 @@ function loadAllUsers() {
         document.getElementById('users-count').innerText = count + " طالب";
     });
 }
+
+
